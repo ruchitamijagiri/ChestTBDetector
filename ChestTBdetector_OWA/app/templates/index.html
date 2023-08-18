@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+  <html ng-app="main">
+  <head>
+    <title>ChestTBDetection</title>
+    <!-- openmrs favicon -->
+    <link rel="shortcut icon" type="image/ico" href="static/img/omrs-button.png"/>
+    <link rel="icon" type="image/png" href="static/img/omrs-button.png"/>
+    
+    <!--  CSS style sheets -->
+    <link rel="stylesheet" type="text/css" href="static/css/mainCSS.css">    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+      .header {
+        max-width: 500px;
+        margin: 10px auto;
+        text-align: center;
+      }
+      .container {
+        max-width: 700px;
+        margin: 80px auto;
+        text-align: left;
+      }
+      .image-container {
+            flex: 1;
+            margin-left: auto; 
+            margin-right: 50px;
+        }
+        .left-container {
+            float: left;
+            width: 50%;
+        }
+        .right-container {
+            float: right;
+            width: 50%;
+            text-align: right;
+        }
+        .result-container {
+            flex: 1;
+        }
+      h1 {
+        margin-bottom: 30px;
+      }
+      .preview {
+      display: none; /* Initially hide the image container */
+      max-width: 300px;
+      margin: 20px auto;
+    }
+      #result {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+      #result1 {
+        margin-top: 20px;
+        font-weight: bold;
+      }
+      .topnav {
+        background-color: #076163;
+        overflow: hidden;
+      }
+    </style>
+       <script>
+      function handleDICOMUpload() {
+        var dicomFile = document.getElementById("dicomFile");
+        var file = dicomFile.files[0];
+        var previewContainer = document.querySelector(".preview");
+        
+        // Check if a file is selected
+        if (file) {
+          // Show the Tuberculosis-54 image
+          previewContainer.innerHTML = '<img src="http://localhost:8081/openmrs-standalone/owa/app/static/img/Tuberculosis-54.png" alt="Chest X-Ray image" width="300" height="200">';
+        } else {
+          // Hide the Tuberculosis-54 image
+          previewContainer.innerHTML = "";
+        }
+    }
+     function predictTuberculosis() {
+        var dicomFile = document.getElementById("dicomFile");
+        var file = dicomFile.files[0];
+
+        var formData = new FormData();
+        formData.append('imagedata', file);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', 'http://localhost:5000/predict', true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            var result = document.getElementById('result');
+            var predictionResult = JSON.parse(xhr.responseText);
+            var prediction = predictionResult.prediction;
+            var score = parseFloat(predictionResult.score);
+            result1.innerHTML = 'Tuberculosis prediction: <strong>' + prediction + '</strong>';
+            result.innerHTML = 'Probability score: <strong>' + score + '</strong>';
+        
+      }
+      };
+      xhr.send(formData);
+    }
+
+  </script>
+  <script type="text/javascript">
+  $(document).ready(function() {
+
+  $('#addDiagnosisButton').click(function() {
+  // Make AJAX request to Flask endpoint
+  $.ajax({
+    url: 'http://localhost:5000/get-person-id',
+    method: 'POST',
+    data: { patient_identifier: patient_Id },
+    success: function(response) {
+      // Handle successful response (redirect to patient page with person_id)
+      var personId = response.patient_id;
+      window.location.href = 'http://localhost:8081/openmrs-standalone/coreapps/clinicianfacing/patient.page?patientId=' + personId;
+    },
+    error: function() {
+      // Handle error response
+      console.log('Error occurred');
+    }
+  });
+});
+});
+
+    </script>
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+          <a href="http://localhost:8081/openmrs-standalone/index.htm">
+              <img src="http://localhost:8081/openmrs-standalone/owa/app/static/img/openmrs-with-title-small.png"/>
+          </a>
+      </div>
+  </header> 
+  <a href="http://localhost:8081/openmrs-standalone/owa/app/templates/patientSearch.html">Patient Search</a>
+    <main>
+      <div class="header"><h1>Chest TB Detection</h1></div>
+      
+      <div class="container">
+        <div class="left-container">
+        <!-- Retrieve the patient name from the URL parameter using JavaScript -->
+        <p>Predicting TB for:</p>
+        <p>Patient ID:   <strong><span id="patientId"></span></strong></p>
+        <p>Patient Name: <strong><span id="patientName"></span></strong></p> 
+        <p>Please upload image of chest XRay for above patient</p>
+        <script>
+          const urlParams = new URLSearchParams(window.location.search);
+          const patient_Id = urlParams.get('patient_id');
+          const patient_Name = urlParams.get('patient_name');
+          
+          // Display the patient name
+          console.log(patient_Name);
+          document.getElementById('patientName').innerText  = patient_Name;
+          
+          // Display the patient ID
+          document.getElementById('patientId').innerText  = patient_Id;
+        </script>
+        
+        <input type="file" id="dicomFile" accept=".dcm" name="imagedata" onchange="handleDICOMUpload()" />
+        <!-- <div id="imageContainer" style="float: right;"></div> -->
+               <script>
+            document.getElementById('dicomFile').addEventListener('change', function (event) {
+                var fileInput = event.target;
+                var file = fileInput.files[0];
+    
+                var formData = new FormData();
+                formData.append('dicomFile', file);
+    
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', 'http://localhost:5000/upload-dicom', true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        var imageContainer = document.getElementById('imageContainer');
+                        imageContainer.innerHTML = '<img src="data:image/jpeg;base64,' + response.image_data + '" alt="Converted JPEG Image">';
+                    }
+                };
+                xhr.send(formData);
+            });
+        </script>
+        <p>  </p>
+        <button onclick="predictTuberculosis()">Predict</button>
+        <div id="result1"></div>
+        <div id="result"></div>
+        <button id="addDiagnosisButton">Add Diagnosis</button>
+        </div>
+        <div class="right-container">
+          <div style="width:300px; text-align:right;" class="image-container" id="imageContainer" style="float: right;" > </div>
+        </div>
+        </div>
+      </div>      
+
+    </main> 
+  </body>
+  </html>
+  

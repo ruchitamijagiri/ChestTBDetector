@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Patient Search</title>
+  <!-- openmrs favicon -->
+  <link rel="shortcut icon" type="image/ico" href="http://localhost:8081/openmrs-standalone/owa/app/static/img/omrs-button.png"/>
+  <link rel="icon" type="image/png" href="http://localhost:8081/openmrs-standalone/owa/app/static/img/omrs-button.png"/>
+  <link rel="stylesheet" type="text/css" href="http://localhost:8081/openmrs-standalone/owa/app/static/css/mainCSS.css">    
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+    // Event listener for search button click
+    $('#searchButton').click(function() {
+      var searchQuery = $('#searchInput').val();
+  
+      // Make AJAX request to Flask API
+      $.ajax({
+        url: 'http://localhost:5000/search',
+        method: 'POST',
+        data: { searchQuery: searchQuery },
+        success: function(response) {
+          // Handle successful response
+          displayPatientData(response);
+        },
+        error: function() {
+          // Handle error response
+          console.log('Error occurred');
+        }
+      });
+    });
+  
+    // Function to display patient data
+    function displayPatientData(data) {
+      var tableBody = $('#tableBody');
+      tableBody.empty();
+  
+      if (data.length === 0) {
+        tableBody.append('<tr><td colspan="4">No results found</td></tr>');
+      } else {
+        for (var i = 0; i < data.length; i++) {
+          var patient = data[i];
+          var patientRow = '<tr>' +
+            '<td>' + patient.patient_id + '</td>' +
+            '<td>' + patient.given_name + '</td>' +
+            '<td>' + patient.family_name + '</td>' +
+            '<td>' + patient.gender + '</td>' +
+            '<td>' + patient.age + '</td>' +
+            '<td><a href="http://localhost:5000/patient-details/' + patient.patient_id + '">View Details</a></td>' +
+            '</tr>';
+          tableBody.append(patientRow);
+        }
+      }
+    }
+   // Event listener for "View Details" link click
+  $('.viewDetailsLink').click(function(e) {
+    e.preventDefault();
+    var patientId = $(this).data('patient-id');
+    window.location.href = 'http://localhost:5000/patient-details/' + patientId;
+  });
+    
+  });
+
+  
+  </script>
+  <style>
+    .container {
+      max-width: 500px;
+      margin: 50px auto;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+    .preview {
+      max-width: 300px;
+      margin: 20px auto;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .topnav {
+      background-color: #076163;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+        <a href="http://localhost:8081/openmrs-standalone/index.htm">
+            <img src="http://localhost:8081/openmrs-standalone/owa/app/static/img/openmrs-with-title-small.png"/>
+        </a>
+    </div>
+</header>
+<div class="container">
+  <h1>Patient Search</h1>
+  <input type="text" id="searchInput" placeholder="Enter search query">
+  <button id="searchButton">Search</button>
+  <div id="patientDataContainer"></div>
+  <div class="table table-hover">
+    <table id="searchTable" class="table table-striped table-hover">
+      <thead>
+        <tr class='click-row'>
+          <th>Patient ID</th>
+          <th>First Name</th>
+          <th>Given Name</th>
+          <th>Gender</th>
+          <th>Age</th>	
+          <th>Details</th>	
+        </tr>
+      </thead>	
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>
